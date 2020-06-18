@@ -1,0 +1,47 @@
+version:  "3"
+services: 
+  prometheus: 
+    image: prom/prometheus
+    ports: 
+    - 9090:9090
+    volumes:
+    - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  vmstorage:
+    image: victoriametrics/vmstorage
+    ports:
+      - 8482:8482
+      - 8400:8482
+      - 8401:8482
+    volumes:
+      - ./strgdata:/storage
+    command:
+      - '--storageDataPath=/storage'
+  consul:
+    image: consul
+    ports:
+    - 8500:8500
+  vmagent:
+    image: victoriametrics/vmagent
+    volumes: 
+    - ./prometheus2.yml:/etc/prometheus/prometheus.yml
+    ports:
+    - 8429:8429
+    command:  
+    - -promscrape.config=/etc/prometheus/prometheus.yml 
+    - -remoteWrite.url=http://vminsert:8480/insert/1/prometheus/
+  vminsert:
+    image: victoriametrics/vminsert
+    command:
+      - '--storageNode=vmstorage:8400'
+    ports:
+      - 8480:8480
+  vmselect:
+    image: victoriametrics/vmselect
+    command:
+      - '--storageNode=vmstorage:8401'
+    ports:
+      - 8481:8481
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000
